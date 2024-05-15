@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -14,6 +15,10 @@ class ArgumentSpec:
     minimum: float | None = None
     maximum: float | None = None
 
+    def __post_init__(self) -> None:
+        if self.type not in {"string", "integer", "number", "boolean"}:
+            raise ValueError(f"unsupported argument type: {self.type}")
+
 
 @dataclass(frozen=True, slots=True)
 class ToolSpec:
@@ -24,6 +29,62 @@ class ToolSpec:
     @property
     def required(self) -> frozenset[str]:
         return frozenset(self.parameters)
+
+    def json_schema(self) -> dict[str, Any]:
+        properties: dict[str, Any] = {}
+        for name, spec in self.parameters.items():
+            prop: dict[str, Any] = {"type": spec.type, "description": spec.description}
+            if spec.enum is not None:
+                prop["enum"] = list(spec.enum)
+            if spec.minimum is not None:
+                prop["minimum"] = spec.minimum
+            if spec.maximum is not None:
+                prop["maximum"] = spec.maximum
+            properties[name] = prop
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": {
+                    "type": "object",
+                    "properties": properties,
+                    "required": sorted(self.required),
+                    "additionalProperties": False,
+                },
+            },
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class FunctionCall:
+    name: str
+    arguments: dict[str, Any]
+
+
+class ToolRegistry:
+    def __init__(self, tools: tuple[ToolSpec, ...] = ()) -> None:
+        self._tools: dict[str, ToolSpec] = {}
+        for tool in tools:
+            self.register(tool)
+
+    def register(self, tool: ToolSpec) -> None:
+        if tool.name in self._tools:
+            raise ValueError(f"duplicate tool: {tool.name}")
+        self._tools[tool.name] = tool
+
+    def get(self, name: str) -> ToolSpec:
+        try:
+            return self._tools[name]
+        except KeyError as error:
+            raise ValidationError(f"unknown tool: {name}") from error
+
+    def validate(self, call: FunctionCall) -> FunctionCall:
+        arguments = validate_arguments(self.get(call.name), call.arguments)
+        return FunctionCall(call.name, arguments)
+
+    def names(self) -> tuple[str, ...]:
+        return tuple(self._tools)
 
 
 def validate_arguments(tool: ToolSpec, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -52,3 +113,15 @@ def validate_arguments(tool: ToolSpec, arguments: dict[str, Any]) -> dict[str, A
         if spec.maximum is not None and value > spec.maximum:
             raise ValidationError(f"{name}: above maximum {spec.maximum}")
     return validated
+
+
+def parse_function_call(text: str, registry: ToolRegistry) -> FunctionCall:
+    try:
+        payload = json.loads(text)
+    except (json.JSONDecodeError, TypeError) as error:
+        raise ValidationError("function call must be valid JSON") from error
+    if not isinstance(payload, dict) or set(payload) != {"name", "arguments"}:
+        raise ValidationError("function call requires exactly name and arguments")
+    if not isinstance(payload["name"], str):
+        raise ValidationError("function name must be a string")
+    return registry.validate(FunctionCall(payload["name"], payload["arguments"]))
