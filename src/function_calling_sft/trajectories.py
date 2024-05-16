@@ -135,6 +135,20 @@ def generate_trajectories(
     return trajectories
 
 
+def trajectory_from_dict(payload: dict[str, Any]) -> Trajectory:
+    messages = []
+    for raw in payload["messages"]:
+        call = None
+        if raw.get("function_call") is not None:
+            call = FunctionCall(
+                raw["function_call"]["name"], raw["function_call"]["arguments"]
+            )
+        messages.append(Message(raw["role"], raw.get("content", ""), call, raw.get("name")))
+    trajectory = Trajectory(payload["trajectory_id"], payload["split"], tuple(messages))
+    trajectory.validate(default_registry())
+    return trajectory
+
+
 def write_jsonl(trajectories: list[Trajectory], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("".join(json.dumps(item.to_dict()) + "\n" for item in trajectories))
