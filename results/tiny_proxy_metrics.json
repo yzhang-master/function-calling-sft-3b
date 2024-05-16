@@ -1,0 +1,74 @@
+{
+  "scope": "Tiny GRU proxy on deterministic synthetic calls; not a 3B language model",
+  "configuration": {
+    "train_trajectories": 160,
+    "test_trajectories": 48,
+    "train_calls": 320,
+    "test_calls": 96,
+    "epochs": 80,
+    "batch_size": 128,
+    "learning_rate": 0.01,
+    "seed": 7,
+    "vocabulary_size": 66,
+    "parameters": 15564
+  },
+  "base": {
+    "examples": 96,
+    "exact_calls": 0,
+    "function_call_accuracy": 0.0,
+    "tool_accuracy": 0.0,
+    "valid_call_rate": 0.0,
+    "failure_examples": [
+      {
+        "trajectory_id": "test-101-0000",
+        "expected_tool": "get_weather",
+        "predicted": "None"
+      },
+      {
+        "trajectory_id": "test-101-0000",
+        "expected_tool": "schedule_meeting",
+        "predicted": "None"
+      },
+      {
+        "trajectory_id": "test-101-0001",
+        "expected_tool": "set_reminder",
+        "predicted": "None"
+      },
+      {
+        "trajectory_id": "test-101-0001",
+        "expected_tool": "get_weather",
+        "predicted": "None"
+      },
+      {
+        "trajectory_id": "test-101-0002",
+        "expected_tool": "get_weather",
+        "predicted": "None"
+      },
+      {
+        "trajectory_id": "test-101-0002",
+        "expected_tool": "schedule_meeting",
+        "predicted": "None"
+      },
+      {
+        "trajectory_id": "test-101-0003",
+        "expected_tool": "set_reminder",
+        "predicted": "None"
+      },
+      {
+        "trajectory_id": "test-101-0003",
+        "expected_tool": "get_weather",
+        "predicted": "None"
+      }
+    ]
+  },
+  "finetuned": {
+    "examples": 96,
+    "exact_calls": 96,
+    "function_call_accuracy": 1.0,
+    "tool_accuracy": 1.0,
+    "valid_call_rate": 1.0,
+    "failure_examples": []
+  },
+  "initial_training_loss": 3.0002620220184326,
+  "final_training_loss": 0.0006701343421203395
+}
