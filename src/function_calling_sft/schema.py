@@ -86,6 +86,9 @@ class ToolRegistry:
     def names(self) -> tuple[str, ...]:
         return tuple(self._tools)
 
+    def all(self) -> tuple[ToolSpec, ...]:
+        return tuple(self._tools.values())
+
 
 def validate_arguments(tool: ToolSpec, arguments: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(arguments, dict):
